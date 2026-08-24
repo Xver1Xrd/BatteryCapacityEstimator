@@ -4,12 +4,16 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Корпус батареи -->
+    <!-- Клемма батареи: центр X = 54 -->
     <path
         android:fillColor="#3DDC84"
-        android:pathData="M34,36 h32 a6,6 0 0 1 6,6 v28 a6,6 0 0 1 -6,6 h-32 a6,6 0 0 1 -6,-6 v-28 a6,6 0 0 1 6,-6 z M42,30 a3,3 0 0 1 3,-3 h10 a3,3 0 0 1 3,3 v3 h-16 z" />
-    <!-- Молния -->
+        android:pathData="M46,38 v-5 a3,3 0 0 1 3,-3 h10 a3,3 0 0 1 3,3 v5 z" />
+    <!-- Корпус батареи: X 32..76, Y 40..78 → центр (54, 59); весь глиф Y 30..78 → центр Y = 54 -->
+    <path
+        android:fillColor="#3DDC84"
+        android:pathData="M70,40 h-32 a6,6 0 0 0 -6,6 v26 a6,6 0 0 0 6,6 h32 a6,6 0 0 0 6,-6 v-26 a6,6 0 0 0 -6,-6 z" />
+    <!-- Молния: центрирована в корпусе -->
     <path
         android:fillColor="#0E1A14"
-        android:pathData="M52,44 l-9,14 h6 l-3,10 l11,-15 h-6 l4,-9 z" />
+        android:pathData="M56,47 l-9,14 h6 l-3,10 l11,-15 h-6 l4,-9 z" />
 </vector>
