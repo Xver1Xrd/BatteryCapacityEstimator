@@ -1,9 +1,19 @@
 package dev.xverlxrd.batterycapacity.ui.navigation
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,13 +27,13 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -31,12 +41,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.xverlxrd.batterycapacity.ui.components.pressScale
 import dev.xverlxrd.batterycapacity.ui.screens.calibration.CalibrationWizardScreen
 import dev.xverlxrd.batterycapacity.ui.screens.device.DeviceScreen
 import dev.xverlxrd.batterycapacity.ui.screens.history.HistoryScreen
@@ -45,7 +56,7 @@ import dev.xverlxrd.batterycapacity.ui.screens.settings.SettingsScreen
 import dev.xverlxrd.batterycapacity.ui.theme.LocalReducedMotion
 import dev.xverlxrd.batterycapacity.ui.theme.MotionTokens
 
-/** Четыре таба; измерение — отдельный полноэкранный маршрут вне бара. */
+/** Четыре таба; измерение — отдельный полноэкранный маршрут вне дока. */
 enum class Tab(val route: String, val label: String, val icon: ImageVector, val iconActive: ImageVector) {
     Home("home", "Обзор", Icons.Outlined.Battery5Bar, Icons.Filled.Battery5Bar),
     History("history", "История", Icons.Outlined.History, Icons.Filled.History),
@@ -62,47 +73,7 @@ fun BatteryEstimatorApp() {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            // Плавающий округлый док: мягкая тень, без пилюли индикатора.
-            val dockShape = RoundedCornerShape(32.dp)
-            NavigationBar(
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, bottom = 14.dp)
-                    .shadow(8.dp, dockShape)
-                    .clip(dockShape),
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-            ) {
-                val entry by navController.currentBackStackEntryAsState()
-                val currentDestination = entry?.destination
-                Tab.entries.forEach { tab ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (!selected) {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
-                        icon = {
-                            Icon(if (selected) tab.iconActive else tab.icon, contentDescription = tab.label)
-                        },
-                        label = { Text(tab.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            indicatorColor = Color.Transparent,
-                        ),
-                    )
-                }
-            }
-        },
+        bottomBar = { Dock(navController) },
     ) { padding ->
         NavHost(
             navController = navController,
@@ -139,6 +110,76 @@ fun BatteryEstimatorApp() {
             composable(Tab.Settings.route) { SettingsScreen() }
             composable(ROUTE_CALIBRATION) {
                 CalibrationWizardScreen(onDone = { navController.popBackStack() })
+            }
+        }
+    }
+}
+
+/**
+ * Плавающий док-капсула вместо стандартного бара: полностью скруглённые торцы,
+ * компактная высота, мягкая тень. Без индикатора-пилюли.
+ */
+@Composable
+private fun Dock(navController: NavHostController) {
+    val entry by navController.currentBackStackEntryAsState()
+    val currentRoute = entry?.destination?.route
+    val dockShape = RoundedCornerShape(50)
+
+    Surface(
+        modifier = Modifier
+            .navigationBarsPadding()
+            .padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+            .fillMaxWidth()
+            .height(62.dp)
+            .shadow(10.dp, dockShape, ambientColor = Color.Black, spotColor = Color.Black)
+            .clip(dockShape),
+        shape = dockShape,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+    ) {
+        Row(Modifier.fillMaxSize()) {
+            Tab.entries.forEach { tab ->
+                val selected = currentRoute == tab.route
+                val interaction = remember { MutableInteractionSource() }
+                val tint by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = tween(MotionTokens.DURATION_QUICK),
+                    label = "dockTint",
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                        .pressScale(interaction)
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = null,
+                        ) {
+                            if (!selected) {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        if (selected) tab.iconActive else tab.icon,
+                        contentDescription = tab.label,
+                        tint = tint,
+                    )
+                    Text(
+                        tab.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tint,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

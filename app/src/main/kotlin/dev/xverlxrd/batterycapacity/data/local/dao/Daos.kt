@@ -7,6 +7,7 @@ import androidx.room.Query
 import dev.xverlxrd.batterycapacity.data.local.entity.BatterySampleEntity
 import dev.xverlxrd.batterycapacity.data.local.entity.CompletedMeasurementEntity
 import dev.xverlxrd.batterycapacity.data.local.entity.MeasurementSessionEntity
+import dev.xverlxrd.batterycapacity.data.local.entity.UsageDailyStatEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -77,5 +78,17 @@ interface CompletedMeasurementDao {
     suspend fun deleteByMeasuredAt(measuredAtMs: Long)
 
     @Query("DELETE FROM completed_measurements")
+    suspend fun clear()
+}
+
+@Dao
+interface UsageStatsDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(stat: UsageDailyStatEntity)
+
+    @Query("SELECT * FROM usage_daily_stats WHERE date_epoch_day >= :sinceEpochDay ORDER BY date_epoch_day ASC")
+    fun observeSince(sinceEpochDay: Long): Flow<List<UsageDailyStatEntity>>
+
+    @Query("DELETE FROM usage_daily_stats")
     suspend fun clear()
 }

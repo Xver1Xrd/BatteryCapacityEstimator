@@ -12,6 +12,9 @@ interface SysfsReader {
     fun listDirs(root: String): List<String>
     fun exists(path: String): Boolean
     fun readText(path: String): String?
+
+    /** Файлы внутри узла; default — пусто (старые фейки тестов не ломаются). */
+    fun listFiles(dir: String): List<String> = emptyList()
 }
 
 @Singleton
@@ -24,4 +27,7 @@ class RealSysfsReader @Inject constructor() : SysfsReader {
     override fun readText(path: String): String? = runCatching {
         File(path).readText().trim()
     }.getOrNull()
+
+    override fun listFiles(dir: String): List<String> =
+        File(dir).listFiles { f -> f.isFile }?.map { it.absolutePath } ?: emptyList()
 }

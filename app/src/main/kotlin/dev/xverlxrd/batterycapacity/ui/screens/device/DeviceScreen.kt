@@ -62,6 +62,7 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
         } else {
             StatusSection(info)
             ElectricalSection(info)
+            UsageSection()
             SystemSection(info)
 
             if (info.plateauDetected) {
@@ -72,7 +73,65 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                 )
             }
         }
+        SysfsSection()
         Spacer(Modifier.height(12.dp))
+    }
+}
+
+/** Накопленная статистика использования (фоновая телеметрия за 30 дней). */
+@Composable
+private fun UsageSection(viewModel: DeviceViewModel = hiltViewModel()) {
+    val summary by viewModel.usageSummary.collectAsStateWithLifecycle()
+    val s = summary ?: return
+
+    SectionHeader("Использование · 30 дней")
+    Spacer(Modifier.height(4.dp))
+    GroupSurface {
+        s.rows.lastOrNull()?.let { today ->
+            MetricRow(
+                label = "Сегодня",
+                value = buildString {
+                    append(today.socAvg?.toString() ?: "—")
+                    append(" % средн.")
+                    today.socMin?.let { append(" · от $it") }
+                    today.socMax?.let { append(" до $it") }
+                },
+                numericValue = false,
+            )
+        }
+        MetricRow(
+            label = "Максимум t° за неделю",
+            value = s.weekTempMaxC?.let { "%.1f °C".format(it) } ?: "—",
+        )
+        MetricRow(
+            label = "Циклов зарядки",
+            value = s.cycleCount?.toString() ?: "не сообщается",
+        )
+        MetricRow(
+            label = "Дней наблюдения",
+            value = s.rows.size.toString(),
+            showDivider = false,
+        )
+    }
+}
+
+/** Полный дамп телеметрии /sys/class/power_supply — сырьё для расчётов. */
+@Composable
+private fun SysfsSection(viewModel: DeviceViewModel = hiltViewModel()) {
+    val nodes by viewModel.sysfsNodes.collectAsStateWithLifecycle()
+    if (nodes.isEmpty()) return
+
+    SectionHeader("Датчики системы (sysfs)")
+    Spacer(Modifier.height(4.dp))
+    GroupSurface {
+        nodes.take(64).forEachIndexed { index, node ->
+            MetricRow(
+                label = node.key,
+                value = node.value,
+                numericValue = false,
+                showDivider = index < nodes.size - 1 && index < 63,
+            )
+        }
     }
 }
 

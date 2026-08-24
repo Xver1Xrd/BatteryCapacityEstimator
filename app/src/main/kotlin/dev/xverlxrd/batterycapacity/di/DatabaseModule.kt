@@ -11,6 +11,7 @@ import dev.xverlxrd.batterycapacity.data.local.AppDatabase
 import dev.xverlxrd.batterycapacity.data.local.dao.CompletedMeasurementDao
 import dev.xverlxrd.batterycapacity.data.local.dao.SampleDao
 import dev.xverlxrd.batterycapacity.data.local.dao.SessionDao
+import dev.xverlxrd.batterycapacity.data.local.dao.UsageStatsDao
 import javax.inject.Singleton
 
 @Module
@@ -21,6 +22,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
+            .addMigrations(AppDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration(dropAllTables = false)
             .build()
 
@@ -33,4 +35,7 @@ object DatabaseModule {
     @Provides
     fun provideCompletedMeasurementDao(db: AppDatabase): CompletedMeasurementDao =
         db.completedMeasurementDao()
+
+    @Provides
+    fun provideUsageStatsDao(db: AppDatabase): UsageStatsDao = db.usageStatsDao()
 }

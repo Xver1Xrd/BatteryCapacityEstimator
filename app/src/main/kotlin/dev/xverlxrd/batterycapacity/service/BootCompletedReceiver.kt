@@ -31,6 +31,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
                     MeasurementForegroundService.start(context)
                     CheckpointWorker.schedule(context)
                 }
+                UsageStatsWorker.schedule(context)
             } finally {
                 pending.finish()
             }
