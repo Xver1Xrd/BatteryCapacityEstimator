@@ -40,6 +40,8 @@ data class CalibrationUiState(
     val designCapacityMah: Double? = null,
     val etaMinutesToFull: Int? = null,
     val etaMinutesToFifteen: Int? = null,
+    /** Последний сохранённый результат — показывается на финальном экране. */
+    val latestResult: CapacityEstimate? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,6 +52,7 @@ class CalibrationViewModel @Inject constructor(
     private val batteryRepository: BatteryInfoRepository,
     private val settings: UserSettingsRepository,
     private val estimator: CapacityEstimator,
+    historyRepository: dev.xverlxrd.batterycapacity.domain.repository.CompletedMeasurementsRepository,
     private val startCalibration: StartCalibrationUseCase,
     private val resumeCalibration: ResumeCalibrationUseCase,
     private val cancelCalibration: CancelCalibrationUseCase,
@@ -65,8 +68,9 @@ class CalibrationViewModel @Inject constructor(
         combine(activeSession, sessionSamples) { s, samples -> s to samples },
         batteryRepository.observeSnapshots(PREVIEW_INTERVAL_MS).map { it.socPercent },
         settings.preferences,
-    ) { (session, samples), _, prefs ->
-        var state = CalibrationUiState(session = session, samples = samples)
+        historyRepository.observeHistory(),
+    ) { (session, samples), _, prefs, measurements ->
+        var state = CalibrationUiState(session = session, samples = samples, latestResult = measurements.firstOrNull())
 
         if (samples.size >= 2 && session != null && session.isActive) {
             // Предварительная оценка пересчитывается на каждом опросе.

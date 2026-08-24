@@ -30,4 +30,8 @@ class CompletedMeasurementsRepositoryImpl @Inject constructor(
     override suspend fun delete(estimate: CapacityEstimate) = withContext(io) {
         dao.deleteByMeasuredAt(estimate.measuredAtMs)
     }
+
+    override suspend fun clearAll() {
+        withContext(io) { dao.clear() }
+    }
 }

@@ -1,4 +1,4 @@
-package dev.xverlxrd.batterycapacity.ui.screens.dashboard
+package dev.xverlxrd.batterycapacity.ui.screens.home
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -12,7 +12,6 @@ import dev.xverlxrd.batterycapacity.domain.repository.BatteryInfoRepository
 import dev.xverlxrd.batterycapacity.domain.repository.CompletedMeasurementsRepository
 import dev.xverlxrd.batterycapacity.domain.repository.MeasurementSessionRepository
 import dev.xverlxrd.batterycapacity.domain.repository.SourceCapabilities
-import dev.xverlxrd.batterycapacity.domain.repository.UserSettingsRepository
 import dev.xverlxrd.batterycapacity.service.CheckpointWorker
 import dev.xverlxrd.batterycapacity.service.MeasurementForegroundService
 import dev.xverlxrd.batterycapacity.domain.usecase.StartCalibrationUseCase
@@ -25,7 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class DashboardUiState(
+data class HomeUiState(
     val snapshot: BatterySnapshot? = null,
     val capabilities: SourceCapabilities = SourceCapabilities(false, false, false, emptyList()),
     val latestMeasurement: CapacityEstimate? = null,
@@ -34,20 +33,18 @@ data class DashboardUiState(
 )
 
 @HiltViewModel
-class DashboardViewModel @Inject constructor(
+class HomeViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val batteryRepository: BatteryInfoRepository,
     private val sessions: MeasurementSessionRepository,
+    batteryRepository: BatteryInfoRepository,
     private val history: CompletedMeasurementsRepository,
-    private val settings: UserSettingsRepository,
-    private val startCalibration: StartCalibrationUseCase,
+    private val startCalibrationUseCase: StartCalibrationUseCase,
 ) : ViewModel() {
 
     private val capabilities = MutableStateFlow(SourceCapabilities(false, false, false, emptyList()))
 
     init {
         viewModelScope.launch {
-            batteryRepository.readNow()
             batteryRepository.observeCapabilities().collect { capabilities.value = it }
         }
         // Незавершённая сессия после смерти процесса — помечаем паузой.
@@ -56,24 +53,24 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<DashboardUiState> = combine(
+    val uiState: StateFlow<HomeUiState> = combine(
         batteryRepository.observeSnapshots(REFRESH_MS),
         history.observeHistory(),
         combine(sessions.observeActiveSession(), capabilities.asStateFlow()) { s, c -> s to c },
     ) { snapshot, measurements, (session, caps) ->
-        DashboardUiState(
+        HomeUiState(
             snapshot = snapshot,
             capabilities = caps,
             latestMeasurement = measurements.firstOrNull(),
             previousMeasurement = measurements.getOrNull(1),
             activeSession = session,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
-    /** Запуск калибровки: создаём сессию, поднимаем FGS и контрольные точки. */
+    /** Запуск измерения: сессия + foreground-сервис + контрольные точки. */
     fun startCalibration() {
         viewModelScope.launch {
-            startCalibration()
+            startCalibrationUseCase()
             MeasurementForegroundService.start(appContext)
             CheckpointWorker.schedule(appContext)
         }

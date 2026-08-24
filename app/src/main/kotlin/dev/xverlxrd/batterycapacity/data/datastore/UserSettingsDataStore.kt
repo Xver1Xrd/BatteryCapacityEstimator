@@ -3,6 +3,7 @@ package dev.xverlxrd.batterycapacity.data.datastore
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -26,6 +27,8 @@ class UserSettingsDataStore @Inject constructor(
         val MANUAL_DESIGN_MAH = longPreferencesKey("manual_design_capacity_mah")
         val FILTER_WINDOW = intPreferencesKey("filter_window_size")
         val DARK_THEME = intPreferencesKey("dark_theme") // -1 system, 0 light, 1 dark
+        val ANIMATIONS_ENABLED = booleanPreferencesKey("animations_enabled")
+        val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
     }
 
     override val preferences: Flow<UserSettingsRepository.UserPreferencesSnapshot> =
@@ -39,6 +42,8 @@ class UserSettingsDataStore @Inject constructor(
                     1 -> true
                     else -> null
                 },
+                animationsEnabled = p[Keys.ANIMATIONS_ENABLED] ?: true,
+                useDynamicColor = p[Keys.DYNAMIC_COLOR] ?: false,
             )
         }
 
@@ -60,6 +65,14 @@ class UserSettingsDataStore @Inject constructor(
         context.settingsStore.edit { prefs ->
             if (dark == null) prefs.remove(Keys.DARK_THEME) else prefs[Keys.DARK_THEME] = if (dark) 1 else 0
         }
+    }
+
+    override suspend fun setAnimationsEnabled(enabled: Boolean) {
+        context.settingsStore.edit { it[Keys.ANIMATIONS_ENABLED] = enabled }
+    }
+
+    override suspend fun setUseDynamicColor(enabled: Boolean) {
+        context.settingsStore.edit { it[Keys.DYNAMIC_COLOR] = enabled }
     }
 
     companion object {

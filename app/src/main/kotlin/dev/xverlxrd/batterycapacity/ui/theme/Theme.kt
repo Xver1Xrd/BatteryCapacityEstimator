@@ -1,38 +1,30 @@
 package dev.xverlxrd.batterycapacity.ui.theme
 
+import android.provider.Settings
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import android.provider.Settings
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
-/**
- * Токены движения: тихие фейды и мягкий scale, как в системных приложениях iOS;
- * reduced-motion оставляет только opacity/color.
- */
+/** Токены движения: короткие, намеренные анимации; reduced-motion → только фейды. */
 object MotionTokens {
-    // cubic-bezier(0.23, 1, 0.32, 1) — сильный ease-out для UI.
+    // cubic-bezier(0.23, 1, 0.32, 1) — мягкий ease-out.
     val EaseOut = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
 
-    // cubic-bezier(0.77, 0, 0.175, 1) — сильный ease-in-out для on-screen морфинга.
+    // cubic-bezier(0.77, 0, 0.175, 1) — плавный ease-in-out для смены состояний.
     val EaseInOut = androidx.compose.animation.core.CubicBezierEasing(0.77f, 0f, 0.175f, 1f)
 
-    const val DURATION_QUICK = 150       // press feedback, мелкие элементы
+    const val DURATION_QUICK = 150       // press-отклик, мелкие элементы
     const val DURATION_STANDARD = 220    // экраны, карточки
-    const val DURATION_SLOW = 280        // крупные панели (всё ещё <300)
-    const val STAGGER_STEP_MS = 45       // 30–80 мс между элементами списка
+    const val DURATION_SLOW = 320        // hero-визуализации
+    const val STAGGER_STEP_MS = 40       // каскад входа секций
 }
 
-/** Глобальный флаг reduced-motion: читается из системной шкалы анимаций. */
+/** Глобальный флаг reduced-motion: системная шкала анимаций + настройка в приложении. */
 val LocalReducedMotion = staticCompositionLocalOf { false }
 
 @Composable
@@ -46,64 +38,41 @@ fun rememberSystemAnimationsEnabled(): Boolean {
     return scale > 0f
 }
 
-/**
- * Типографика в духе iOS HIG: Large Title 34 bold с отрицательным трекингом,
- * headline 17 semibold для заголовков строк, body 17, footnote 13.
- */
-private val AppTypography = Typography(
-    headlineLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 34.sp, lineHeight = 41.sp, letterSpacing = (-0.6).sp),
-    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 34.sp, letterSpacing = (-0.5).sp),
-    headlineSmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp, letterSpacing = (-0.4).sp),
-    titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 25.sp, letterSpacing = (-0.3).sp),
-    titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 22.sp),
-    titleSmall = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp),
-    bodyLarge = TextStyle(fontWeight = FontWeight.Normal, fontSize = 17.sp, lineHeight = 22.sp),
-    bodyMedium = TextStyle(fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 18.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 16.sp),
-    labelMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 14.sp, letterSpacing = 0.2.sp),
-    labelSmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 12.sp),
-)
-
-/** Скругления как у inset-grouped списков iOS: карточки 10, кнопки 12, листы 16. */
 private val AppShapes = Shapes(
-    extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-    small = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-    medium = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-    large = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+    extraSmall = RoundedCornerShape(Radius.s),
+    small = RoundedCornerShape(Radius.s),
+    medium = RoundedCornerShape(Radius.m),
+    large = RoundedCornerShape(Radius.l),
 )
 
-private val LightScheme = lightColorScheme(
-    primary = LightPrimary,
-    onPrimary = LightOnPrimary,
-    secondary = LightSecondary,
-    tertiary = LightTertiary,
-    background = LightBackground,
-    surface = LightSurface,
-    surfaceVariant = LightSurfaceVariant,
-    outline = LightOutline,
-    error = LightError,
-)
-
-private val DarkScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    secondary = DarkSecondary,
-    tertiary = DarkTertiary,
-    background = DarkBackground,
-    surface = DarkSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    outline = DarkOutline,
-    error = DarkError,
-)
-
+/**
+ * @param darkTheme тёмная тема (обычно из настроек пользователя)
+ * @param dynamicColor динамический цвет Material You (Android 12+)
+ */
 @Composable
 fun BatteryEstimatorTheme(
-    darkTheme: Boolean = androidx.compose.foundation.isSystemInDarkTheme(),
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
+    animationsEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val scheme = if (darkTheme) DarkScheme else LightScheme
-    CompositionLocalProvider(LocalReducedMotion provides !rememberSystemAnimationsEnabled()) {
+    val context = LocalContext.current
+    val baseScheme = if (darkTheme) darkScheme() else lightScheme()
+    val scheme = if (dynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        if (darkTheme) {
+            androidx.compose.material3.dynamicDarkColorScheme(context)
+        } else {
+            androidx.compose.material3.dynamicLightColorScheme(context)
+        }
+    } else {
+        baseScheme
+    }
+    val statusColors = if (darkTheme) DarkStatusColors else LightStatusColors
+
+    CompositionLocalProvider(
+        LocalReducedMotion provides (!animationsEnabled || !rememberSystemAnimationsEnabled()),
+        LocalStatusColors provides statusColors,
+    ) {
         MaterialTheme(
             colorScheme = scheme,
             typography = AppTypography,

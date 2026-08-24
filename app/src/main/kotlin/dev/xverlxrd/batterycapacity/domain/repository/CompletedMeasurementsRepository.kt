@@ -9,6 +9,7 @@ interface CompletedMeasurementsRepository {
     fun observeHistory(): Flow<List<CapacityEstimate>>
     suspend fun save(estimate: CapacityEstimate)
     suspend fun delete(estimate: CapacityEstimate)
+    suspend fun clearAll()
 }
 
 interface UserSettingsRepository {
@@ -17,12 +18,16 @@ interface UserSettingsRepository {
     suspend fun setManualDesignCapacityMah(mah: Long?)
     suspend fun setFilterWindowSize(size: Int)
     suspend fun setUseDarkTheme(dark: Boolean?)
+    suspend fun setAnimationsEnabled(enabled: Boolean)
+    suspend fun setUseDynamicColor(enabled: Boolean)
 
     data class UserPreferencesSnapshot(
         val pollingIntervalSeconds: Int = 30,
         val manualDesignCapacityMah: Long? = null,
         val filterWindowSize: Int = 5,
         val useDarkTheme: Boolean? = null,
+        val animationsEnabled: Boolean = true,
+        val useDynamicColor: Boolean = false,
     ) {
         fun toDesign(): DesignCapacity = manualDesignCapacityMah
             ?.let { DesignCapacity(it.toDouble(), dev.xverlxrd.batterycapacity.domain.model.DesignCapacitySource.MANUAL) }

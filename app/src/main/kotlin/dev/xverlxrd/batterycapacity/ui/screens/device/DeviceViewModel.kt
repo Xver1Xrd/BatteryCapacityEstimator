@@ -1,4 +1,4 @@
-package dev.xverlxrd.batterycapacity.ui.screens.live
+package dev.xverlxrd.batterycapacity.ui.screens.device
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
-class LiveMonitorViewModel @Inject constructor(
+class DeviceViewModel @Inject constructor(
     observeLive: ObserveLiveBatteryUseCase,
     batteryRepository: BatteryInfoRepository,
 ) : ViewModel() {
@@ -26,17 +26,16 @@ class LiveMonitorViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(3000), null)
 
     /**
-     * Роллинг-окно последних WINDOW отсчётов для графика V/I.
+     * Роллинг-окно последних WINDOW отсчётов для спарклайна напряжения.
      * Явная цепочка map→scan→stateIn фиксирует типы за инференсом.
      */
-    val history: StateFlow<List<BatterySnapshot>> =
+    val snapshots: StateFlow<List<BatterySnapshot>> =
         batteryRepository.observeSnapshots(LIVE_INTERVAL_MS)
-            .mapToList()
+            .mapToSingle()
             .scan(emptyList<BatterySnapshot>()) { acc, next -> (acc + next).takeLast(WINDOW) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(3000), emptyList())
 
-    private fun Flow<BatterySnapshot>.mapToList(): Flow<List<BatterySnapshot>> =
-        map { snapshot -> listOf(snapshot) }
+    private fun Flow<BatterySnapshot>.mapToSingle(): Flow<BatterySnapshot> = this
 
     companion object {
         const val LIVE_INTERVAL_MS = 2000L
